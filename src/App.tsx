@@ -1045,7 +1045,7 @@ export default function App() {
               }}
             />
             <Heading
-              size="7"
+              size="8"
               style={{
                 fontWeight: 800,
                 color: isNightIntro ? "#fff" : undefined,

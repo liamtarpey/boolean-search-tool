@@ -294,7 +294,7 @@ export default function App() {
           {/* Preview after link */}
           <Box>
             <Text mb="2">Preview</Text>
-            <TextArea value={query} readOnly minRows={4} />
+            <TextArea value={query} readOnly rows={4} />
             <Flex justify="end" mt="3" gap="3">
               <Button onClick={copy} disabled={!query}>
                 {copied ? "Copied!" : "Copy"}

@@ -615,6 +615,88 @@ const DayBackdrop: React.FC = () => {
   );
 };
 
+/* ========= Clock (drop-in) ========= */
+const Clock: React.FC<{
+  useUTC?: boolean;
+  hour12?: boolean;
+  showSeconds?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+}> = ({
+  useUTC = true,
+  hour12 = true,
+  showSeconds = true,
+  className,
+  style,
+}) => {
+  const [now, setNow] = React.useState(() => new Date());
+
+  React.useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const pad = (n: number) => n.toString().padStart(2, "0");
+
+  const h24 = useUTC ? now.getUTCHours() : now.getHours();
+  const m = useUTC ? now.getUTCMinutes() : now.getMinutes();
+  const s = useUTC ? now.getUTCSeconds() : now.getSeconds();
+  const ampm = h24 >= 12 ? "PM" : "AM";
+  const hh = hour12 ? h24 % 12 || 12 : h24;
+
+  const dateStr = now.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    ...(useUTC ? { timeZone: "UTC" } : {}),
+  });
+
+  return (
+    <div
+      className={className}
+      style={{ textAlign: "center", lineHeight: 1.1, ...style }}
+      aria-label={`Current ${useUTC ? "UTC" : "local"} time`}
+    >
+      <div style={{ opacity: 0.7, fontWeight: 500, marginBottom: 6 }}>
+        {dateStr}
+        {useUTC ? " (UTC)" : ""}
+      </div>
+      <div
+        style={{
+          fontWeight: 300,
+          letterSpacing: "-0.02em",
+          fontSize: "clamp(28px, 6vw, 56px)",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        <span>{pad(hh)}</span>
+        <span>:</span>
+        <span>{pad(m)}</span>
+        {showSeconds && (
+          <>
+            <span>:</span>
+            <span>{pad(s)}</span>
+          </>
+        )}
+        {hour12 && (
+          <span
+            style={{
+              fontSize: "0.38em",
+              marginLeft: 8,
+              verticalAlign: "middle",
+              opacity: 0.85,
+              fontWeight: 600,
+            }}
+          >
+            {ampm}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   // Steps: 0=Intro, 1=Site, 2=Type, 3=Keywords, 4=Locations, 5=Exclude, 6=Preview
   const [step, setStep] = React.useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
@@ -974,6 +1056,11 @@ export default function App() {
             >
               {greeting}
             </Heading>
+
+            <div style={{ color: isNightIntro ? "#fff" : undefined }}>
+              <Clock useUTC={true} hour12={true} showSeconds={true} />
+            </div>
+
             <Text
               size="3"
               // keep Radix gray in the day; force white at night

@@ -317,8 +317,8 @@ const Confetti: React.FC<{ active: boolean; durationMs?: number }> = ({
     return () => {
       window.removeEventListener("resize", onResize);
       cancelAnimationFrame(raf);
-      const c = ref.current;
-      if (c) c.getContext("2d")?.clearRect(0, 0, c.width, c.height);
+      if (canvas)
+        canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [active, durationMs]);
 
@@ -471,8 +471,10 @@ export default function App() {
     step === 5 ||
     step === 6;
 
-  const next = () => setStep((s) => Math.min(6, (s + 1) as typeof s));
-  const back = () => setStep((s) => Math.max(0, (s - 1) as typeof s));
+  const next = () =>
+    setStep((s) => Math.min(6, s + 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6);
+  const back = () =>
+    setStep((s) => Math.max(0, s - 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6);
 
   // Keyboard: Enter / Esc
   React.useEffect(() => {

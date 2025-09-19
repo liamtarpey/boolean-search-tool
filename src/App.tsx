@@ -171,9 +171,9 @@ const UnderlineInput: React.FC<{
 /* -------- greeting (GMT) -------- */
 const getGmtGreeting = () => {
   const hour = new Date().getUTCHours(); // GMT
-  if (hour >= 5 && hour < 12) return "Good morning";
-  if (hour >= 12 && hour < 18) return "Good afternoon";
-  return "Good evening";
+  if (hour >= 5 && hour < 12) return { emoji: "🌅", label: "Good morning" };
+  if (hour >= 12 && hour < 18) return { emoji: "🌞", label: "Good afternoon" };
+  return { emoji: "🌙", label: "Good evening" };
 };
 
 /* ========= Confetti (canvas / JS) ========= */
@@ -335,6 +335,286 @@ const Confetti: React.FC<{ active: boolean; durationMs?: number }> = ({
   );
 };
 
+/* ======== Time-of-day mode ======== */
+const getTimeMode = () => {
+  const h = new Date().getUTCHours();
+  if (h >= 5 && h < 12) return "morning" as const;
+  if (h >= 12 && h < 18) return "day" as const;
+  return "evening" as const; // night
+};
+
+/* ======== Night sky (stars) backdrop ======== */
+// JS port of the SCSS multiple-box-shadow() + :after clone + animStar
+const NightBackdrop: React.FC = () => {
+  const WIDTH = 2000; // match the SCSS random(2000)
+  const HEIGHT = 2000;
+
+  const makeShadows = React.useCallback((n: number) => {
+    const pts: string[] = [];
+    for (let i = 0; i < n; i++) {
+      const x = Math.floor(Math.random() * WIDTH);
+      const y = Math.floor(Math.random() * HEIGHT);
+      pts.push(`${x}px ${y}px #FFF`);
+    }
+    return pts.join(", ");
+  }, []);
+
+  // memo to keep the starfield stable across re-renders
+  const shadowsSmall = React.useMemo(() => makeShadows(700), [makeShadows]);
+  const shadowsMed = React.useMemo(() => makeShadows(200), [makeShadows]);
+  const shadowsBig = React.useMemo(() => makeShadows(100), [makeShadows]);
+
+  return (
+    <>
+      <style>{`
+        @keyframes animStar {
+          from { transform: translateY(0); }
+          to   { transform: translateY(-2000px); }
+        }
+      `}</style>
+      <div
+        aria-hidden
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+          overflow: "hidden",
+          // SCSS: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%)
+          background:
+            "radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%)",
+        }}
+      >
+        {/* Layer 1: tiny stars */}
+        <div
+          style={{
+            position: "absolute",
+            width: 1,
+            height: 1,
+            background: "transparent",
+            boxShadow: shadowsSmall,
+            animation: "animStar 50s linear infinite",
+          }}
+        />
+        {/* :after clone (placed as real node) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 2000,
+            width: 1,
+            height: 1,
+            background: "transparent",
+            boxShadow: shadowsSmall,
+            animation: "animStar 50s linear infinite",
+          }}
+        />
+
+        {/* Layer 2: medium stars */}
+        <div
+          style={{
+            position: "absolute",
+            width: 2,
+            height: 2,
+            background: "transparent",
+            boxShadow: shadowsMed,
+            animation: "animStar 100s linear infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: 2000,
+            width: 2,
+            height: 2,
+            background: "transparent",
+            boxShadow: shadowsMed,
+            animation: "animStar 100s linear infinite",
+          }}
+        />
+
+        {/* Layer 3: big stars */}
+        <div
+          style={{
+            position: "absolute",
+            width: 3,
+            height: 3,
+            background: "transparent",
+            boxShadow: shadowsBig,
+            animation: "animStar 150s linear infinite",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            top: 2000,
+            width: 3,
+            height: 3,
+            background: "transparent",
+            boxShadow: shadowsBig,
+            animation: "animStar 150s linear infinite",
+          }}
+        />
+      </div>
+    </>
+  );
+};
+
+/* ======== Placeholders for later ======== */
+/* ======== Morning (sun + grass + cycling sky) backdrop ======== */
+const MorningBackdrop: React.FC<{ durationSec?: number }> = ({
+  durationSec = 10,
+}) => {
+  return (
+    <>
+      <style>{`
+        .morning-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;       /* don't block the UI */
+          animation: cycleskycolors ${durationSec}s linear infinite;
+          overflow: hidden;
+        }
+
+        .morning-sun {
+          position: absolute;
+          width: 18vmin;              /* responsive ~200px on desktop */
+          height: 18vmin;
+          border-radius: 50%;
+          background: #f1c40f;
+          transform-origin: center;
+          will-change: transform, background-color;
+          animation: sunmotion ${durationSec}s linear infinite forwards;
+        }
+
+        .morning-grass {
+          position: fixed;
+          left: 0; right: 0; bottom: 0;
+          height: 14vh;               /* responsive grass height */
+          background: #2ecc71;
+        }
+
+        @keyframes sunmotion {
+          /* Just below horizon on the left */
+          0% {
+            transform: translate(-20vw, 80vh);
+            background: #d35400;
+          }
+
+          /* Rising */
+          25% {
+            transform: translate(17vw, 50vh);
+            background: #f39c12;
+          }
+
+          /* Highest point (noon-ish) */
+          50% {
+            transform: translate(50vw, 20vh);
+            background: #f1c40f;
+          }
+
+          /* Descending */
+          75% {
+            transform: translate(83vw, 50vh);
+            background: #f39c12;
+          }
+
+          /* Below horizon on the right */
+          100% {
+            transform: translate(120vw, 80vh);
+            background: #e74c3c;
+          }
+        }
+
+        @keyframes cycleskycolors {
+          0%   { background: #2c3e50; }
+          10%  { background: pink; }
+          30%  { background: #3498db; }
+          70%  { background: #3498db; }
+          90%  { background: pink; }
+          100% { background: #2c3e50; }
+        }
+      `}</style>
+
+      <div className="morning-backdrop" aria-hidden>
+        <div className="morning-sun" />
+        <div className="morning-grass" />
+      </div>
+    </>
+  );
+};
+
+/* ======== Day (afternoon) glow backdrop ======== */
+const DayBackdrop: React.FC = () => {
+  const glowRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const glow = glowRef.current;
+    if (!glow) return;
+
+    let raf = 0;
+    const onMove = (e: MouseEvent) => {
+      const x = e.clientX;
+      const y = e.clientY;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        // Follow cursor; keep same offset trick as original (center the circle)
+        glow.style.left = `${x}px`;
+        glow.style.top = `${y}px`;
+        glow.style.marginLeft = "-50%";
+        glow.style.marginTop = "-50vh";
+      });
+    };
+
+    window.addEventListener("mousemove", onMove);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* Minimal CSS port of the provided styles */}
+      <style>{`
+        .day-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none; /* don't block the UI */
+          overflow: hidden;
+          background: rgb(252, 141, 120); /* warm afternoon base */
+          transition: background 2s cubic-bezier(1, 1, 1, 1);
+        }
+        .day-circle {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .day-glow {
+          position: absolute;
+          width: 80vw;
+          height: 80vw;
+          background: radial-gradient(
+            circle closest-side,
+            rgb(245, 207, 103) 60%,
+            rgba(245, 207, 103, 0)
+          );
+          transition: background 0.5s cubic-bezier(1, 1, 1, 1);
+        }
+      `}</style>
+
+      <div className="day-backdrop" aria-hidden>
+        <div className="day-circle">
+          <div ref={glowRef} className="day-glow" />
+        </div>
+      </div>
+    </>
+  );
+};
+
 export default function App() {
   // Steps: 0=Intro, 1=Site, 2=Type, 3=Keywords, 4=Locations, 5=Exclude, 6=Preview
   const [step, setStep] = React.useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
@@ -346,6 +626,8 @@ export default function App() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
+
+  const isNightIntro = step === 0 && getTimeMode() === "evening";
 
   const [site, setSite] = React.useState("github.com");
   const TYPE_OPTIONS = [
@@ -382,12 +664,12 @@ export default function App() {
   });
   const [extraCsv, setExtraCsv] = React.useState("");
 
-  // Locations — preselect UK + London
+  // Locations — start empty (UK/London deselected)
   const [selectedCountries, setSelectedCountries] = React.useState<Set<string>>(
-    new Set(["UK"])
+    new Set()
   );
   const [selectedCities, setSelectedCities] = React.useState<Set<string>>(
-    new Set(["london"])
+    new Set()
   );
 
   // Excludes
@@ -420,6 +702,8 @@ export default function App() {
   const googleHref = query
     ? `https://www.google.com/search?q=${encodeURIComponent(query)}`
     : "#";
+
+  const hasQuery = !!query && query.trim().length > 0;
 
   // Actions
   const toggleType = (name: string, pressed: boolean) =>
@@ -461,13 +745,13 @@ export default function App() {
       return next;
     });
 
-  // Step controls
+  // Step controls — location not mandatory, so Next always allowed
   const canNext =
     step === 0 ||
-    (step === 1 && !!site.trim()) ||
-    (step === 2 && types.length > 0) ||
-    (step === 3 && keywords.length > 0) ||
-    (step === 4 && (selectedCountries.size > 0 || selectedCities.size > 0)) ||
+    step === 1 ||
+    step === 2 ||
+    step === 3 ||
+    step === 4 ||
     step === 5 ||
     step === 6;
 
@@ -476,18 +760,20 @@ export default function App() {
   const back = () =>
     setStep((s) => Math.max(0, s - 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6);
 
-  // Keyboard: Enter / Esc
+  // Keyboard: Enter / Esc / ← / →
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
+      const k = e.key;
+      if (k === "Enter" || k === "ArrowRight") {
         e.preventDefault();
         if (step === 6 && query) {
           window.open(googleHref, "_blank", "noopener,noreferrer");
           return;
         }
         if (canNext) next();
+        return;
       }
-      if (e.key === "Escape") {
+      if (k === "Escape" || k === "ArrowLeft") {
         e.preventDefault();
         back();
       }
@@ -499,7 +785,8 @@ export default function App() {
   // Progress: 7 steps (0..6) → 6 intervals
   const progress = (step / 6) * 100;
 
-  const greeting = `${getGmtGreeting()} Jane!`;
+  const { emoji, label } = getGmtGreeting();
+  const greeting = `${emoji} ${label} Jane!`;
 
   /* ========= styles for animations ========= */
   const styles = (
@@ -535,9 +822,14 @@ export default function App() {
     <Theme
       appearance="light"
       accentColor="indigo"
-      style={{ fontFamily: "Montserrat, system-ui" }}
+      style={{ fontFamily: "Montserrat, system-ui", minHeight: "70dvh" }}
     >
       {styles}
+      {/* Intro pattern backdrop */}
+      {/* Intro backdrop (night only for now) */}
+      {step === 0 && getTimeMode() === "evening" && <NightBackdrop />}
+      {step === 0 && getTimeMode() === "morning" && <MorningBackdrop />}
+      {step === 0 && getTimeMode() === "day" && <DayBackdrop />}
 
       {/* Top nav with bottom border */}
       <Box
@@ -564,8 +856,12 @@ export default function App() {
             height={28}
             style={{ borderRadius: 6 }}
           />
-          <Heading size="3" style={{ fontWeight: 700 }}>
-            Boolean Query Builder
+          <Heading
+            size="3"
+            style={{ fontWeight: 700 }}
+            onClick={() => setStep(0)}
+          >
+            Janey Briggs' Talent Search
           </Heading>
         </Flex>
 
@@ -608,7 +904,6 @@ export default function App() {
           </svg>
         </Link>
       </Box>
-
       {/* Progress */}
       {step > 0 && (
         <Box
@@ -644,7 +939,6 @@ export default function App() {
           </div>
         </Box>
       )}
-
       {/* Content */}
       <Box style={{ marginTop: NAV_HEIGHT + 110, padding: "28px 20px 48px" }}>
         {/* Step 0: Greeting + big mascot (dog lifts) */}
@@ -654,7 +948,7 @@ export default function App() {
             direction="column"
             align="center"
             gap="5"
-            style={{ textAlign: "center" }}
+            style={{ textAlign: "center", position: "relative", zIndex: 1 }}
           >
             <img
               src={`data:image/png;base64,${DOG_B64}`}
@@ -668,10 +962,29 @@ export default function App() {
                 borderRadius: 16,
               }}
             />
-            <Heading size="7" style={{ fontWeight: 800 }}>
+            <Heading
+              size="7"
+              style={{
+                fontWeight: 800,
+                color: isNightIntro ? "#fff" : undefined,
+                textShadow: isNightIntro
+                  ? "0 2px 14px rgba(0,0,0,0.35)"
+                  : undefined,
+              }}
+            >
               {greeting}
             </Heading>
-            <Text size="3" color="gray">
+            <Text
+              size="3"
+              // keep Radix gray in the day; force white at night
+              color={isNightIntro ? undefined : "gray"}
+              style={{
+                color: isNightIntro ? "#fff" : undefined,
+                textShadow: isNightIntro
+                  ? "0 1px 10px rgba(0,0,0,0.35)"
+                  : undefined,
+              }}
+            >
               Ready to build a powerful boolean search? Press{" "}
               <strong>Enter</strong> or click the arrow to begin.
             </Text>
@@ -908,7 +1221,7 @@ export default function App() {
         {/* Step 6: Final actions + animations */}
         {step === 6 && (
           <>
-            <Confetti active={true} />
+            {hasQuery && <Confetti active={true} />}
             <Flex
               className="animate-step-in"
               direction="column"
@@ -921,28 +1234,34 @@ export default function App() {
                 className="animate-title"
                 style={{ fontWeight: 800, fontSize: "100px", lineHeight: 1.05 }}
               >
-                🎉 Success!
+                {hasQuery ? "🎉 Success!" : "😫 Oh noooo!"}
               </Heading>
 
               <Text size="3" color="gray">
-                Open in Google or copy the boolean search term
+                {hasQuery
+                  ? "Open in Google or copy the boolean search term"
+                  : "Looks like you didn't select any filters!"}
               </Text>
 
-              <Flex gap="3" align="center" justify="center">
-                <Button asChild disabled={!query}>
-                  <Link href={googleHref} target="_blank" rel="noreferrer">
-                    Open in Google
-                  </Link>
-                </Button>
+              {hasQuery && (
+                <Flex gap="3" align="center" justify="center">
+                  <Button asChild disabled={!query}>
+                    <Link href={googleHref} target="_blank" rel="noreferrer">
+                      Open in Google
+                    </Link>
+                  </Button>
 
-                <Button onClick={copy} disabled={!query} variant="surface">
-                  {copied ? "Copied!" : "Copy search term"}
-                </Button>
-              </Flex>
+                  <Button onClick={copy} disabled={!query} variant="surface">
+                    {copied ? "Copied!" : "Copy search term"}
+                  </Button>
+                </Flex>
+              )}
 
-              <Text size="1" color="gray">
-                Tip: Press <strong>Enter</strong> to open Google.
-              </Text>
+              {hasQuery && (
+                <Text size="1" color="gray">
+                  Tip: Press <strong>Enter</strong> to open Google.
+                </Text>
+              )}
             </Flex>
 
             {/* Bottom-left image with delayed pop & bounce */}
@@ -970,7 +1289,6 @@ export default function App() {
           </>
         )}
       </Box>
-
       {/* Side arrows: black icons, larger, no background */}
       {step > 0 && (
         <button
@@ -1010,7 +1328,6 @@ export default function App() {
           </svg>
         </button>
       )}
-
       {step < 6 && canNext && (
         <button
           aria-label="Next"
